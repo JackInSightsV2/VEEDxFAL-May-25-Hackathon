@@ -1,2 +1,4 @@
 # VEEDxFAL-May-25-Hackathon
-My submission for the Hackathon (3 Days)
+
+This repository will contain both the frontend and backend for the hackathon project.
+The backend FastAPI app lives in the `backend/` directory.
