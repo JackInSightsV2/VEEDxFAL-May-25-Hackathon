@@ -127,7 +127,7 @@ This file outlines all the tasks needed to build the backend for the AI Memory J
 
 ## 🖼️ Visual Generation (`fal.py`)
 
-* Generate image using Fal AI:
+* [x] Generate image using Fal AI:
 
   ```python
   import requests
