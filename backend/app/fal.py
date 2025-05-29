@@ -1,11 +1,6 @@
 """Image generation module using FAL API."""
 
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-FAL_API_KEY = os.getenv("FAL_API_KEY")
+from envloader import FAL_API_KEY
 
 
 def generate_image(prompt: str) -> str:
