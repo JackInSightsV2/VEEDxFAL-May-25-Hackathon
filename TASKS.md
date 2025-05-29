@@ -10,7 +10,7 @@ This file outlines all the tasks needed to build the backend for the AI Memory J
 
   ```bash
   mkdir backend && cd backend
-  touch main.py fal.py elevenlabs.py video_assembler.py utils.py whisper_transcriber.py sievedata.py requirements.txt .env
+  touch main.py fal.py elevenlabs.py video_assembler.py envloader.py whisper_transcriber.py sievedata.py requirements.txt .env
   ```
 
 * [x] Initialize a virtual environment and install dependencies:
@@ -24,7 +24,7 @@ This file outlines all the tasks needed to build the backend for the AI Memory J
 * [x] Add `.env` support:
 
   ```python
-  # utils.py
+  # envloader.py
   from dotenv import load_dotenv
   import os
   load_dotenv()
@@ -82,7 +82,7 @@ This file outlines all the tasks needed to build the backend for the AI Memory J
 
 ## 🔊 Transcription (`whisper_transcriber.py`)
 
-* Use OpenAI Whisper:
+* [x] Use OpenAI Whisper:
 
   ```python
   import whisper
