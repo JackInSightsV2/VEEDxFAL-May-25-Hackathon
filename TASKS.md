@@ -6,14 +6,14 @@ This file outlines all the tasks needed to build the backend for the AI Memory J
 
 ## 📁 Project Setup
 
-* Create a Python project folder with the following structure:
+* [x] Create a Python project folder with the following structure:
 
   ```bash
   mkdir backend && cd backend
   touch main.py fal.py elevenlabs.py video_assembler.py utils.py whisper_transcriber.py sievedata.py requirements.txt .env
   ```
 
-* Initialize a virtual environment and install dependencies:
+* [x] Initialize a virtual environment and install dependencies:
 
   ```bash
   python -m venv venv
@@ -21,7 +21,7 @@ This file outlines all the tasks needed to build the backend for the AI Memory J
   pip install fastapi uvicorn requests python-dotenv openai-whisper ffmpeg-python
   ```
 
-* Add `.env` support:
+* [x] Add `.env` support:
 
   ```python
   # utils.py
@@ -38,7 +38,7 @@ This file outlines all the tasks needed to build the backend for the AI Memory J
 
 ## 🔑 API Key Setup (`.env`)
 
-* Add the following to your `.env` file:
+* [x] Add the following to your `.env` file:
 
   ```env
   ELEVEN_API_KEY=your_elevenlabs_key
@@ -50,7 +50,7 @@ This file outlines all the tasks needed to build the backend for the AI Memory J
 
 ## 📥 Upload Endpoint (`main.py`)
 
-* Setup FastAPI with an upload route:
+* [x] Setup FastAPI with an upload route:
 
   ```python
   from fastapi import FastAPI, UploadFile, Form
