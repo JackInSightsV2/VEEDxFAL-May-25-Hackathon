@@ -1,3 +1,6 @@
 fastapi
 uvicorn[standard]
 python-dotenv
+nginx
+uvicorn
+requests
