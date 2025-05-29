@@ -114,7 +114,7 @@ This file outlines all the tasks needed to build the backend for the AI Memory J
 
 ## ✍️ Script Beautifier (`utils.py`)
 
-* Beautify transcript using simple formatting:
+* [x] Beautify transcript using simple formatting:
 
   ```python
   def beautify_transcript(transcript, mood, sieve_data):

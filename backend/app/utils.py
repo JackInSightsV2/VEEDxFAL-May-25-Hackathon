@@ -8,7 +8,10 @@ def beautify_diary(text: str) -> str:
 
 
 def beautify_transcript(transcript: str, mood: str, sieve_data: dict) -> str:
-    """Format the transcript using mood and Sieve metadata."""
+    """Format the transcript using simple metadata."""
     themes = ", ".join(sieve_data.get("topics", []))
-    sentiment = sieve_data.get("sentiment", mood)
-    return f"A {sentiment} retelling of a day themed around {themes}:\n\n{transcript}"
+    sentiment = sieve_data.get("sentiment", "reflective")
+    return (
+        f"A {sentiment} retelling of a day themed around {themes}:\n\n"
+        f"{transcript}"
+    )
