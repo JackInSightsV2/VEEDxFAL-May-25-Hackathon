@@ -148,7 +148,7 @@ This file outlines all the tasks needed to build the backend for the AI Memory J
 
 ## 🎙️ Voice Generation (`elevenlabs.py`)
 
-* Generate voice from script:
+* [x] Generate voice from script:
 
   ```python
   import requests
