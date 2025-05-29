@@ -97,7 +97,7 @@ This file outlines all the tasks needed to build the backend for the AI Memory J
 
 ## 🧠 Sieve Integration (`sievedata.py`)
 
-* Use Sievedata API to analyze transcript:
+* [x] Use Sievedata API to analyze transcript:
 
   ```python
   import requests
