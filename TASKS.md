@@ -177,7 +177,7 @@ This file outlines all the tasks needed to build the backend for the AI Memory J
 
 ## 🎬 Video Assembly (`video_assembler.py`)
 
-* Use ffmpeg to combine image and narration:
+* [x] Use ffmpeg to combine image and narration:
 
   ```python
   import subprocess
