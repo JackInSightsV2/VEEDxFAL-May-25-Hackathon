@@ -1,0 +1,6 @@
+uvicorn app.main:app --reload
+
+  curl -X POST ^
+       -F "video=@/path/to/video.mp4" ^
+       -F "mood=Relexed" ^
+       http://localhost:8000/generate

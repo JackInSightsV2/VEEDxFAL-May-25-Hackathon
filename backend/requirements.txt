@@ -1,6 +1,7 @@
 fastapi
 uvicorn[standard]
 python-dotenv
-nginx
 uvicorn
 requests
+google-cloud-language
+fal_client

@@ -1,18 +1,143 @@
-"""Image generation module using FAL API."""
+"""Video generation module using FAL API."""
 
 import os
+import fal_client
 import requests
+from .logger import logger
+
+# Ensure FAL_KEY is set for fal_client library
+def ensure_fal_key():
+    """Ensure FAL_KEY is properly set for the fal_client library."""
+    fal_key = os.getenv("FAL_KEY")
+    fal_api_key = os.getenv("FAL_API_KEY")
+    
+    if not fal_key and fal_api_key:
+        os.environ["FAL_KEY"] = fal_api_key
+        print(f"🔧 Mapped FAL_API_KEY to FAL_KEY")
+        return True
+    elif fal_key:
+        return True
+    else:
+        print("❌ No FAL API key found. Please set either FAL_KEY or FAL_API_KEY in your .env file")
+        return False
+
+# Call this when the module is imported
+ensure_fal_key()
 
 
+def generate_video_from_text(prompt: str, video_id: int = 0, job_id: str = None) -> str:
+    """Generate a video based on the text prompt and return the video path."""
+    
+    # Double-check FAL key before making API call
+    if not ensure_fal_key():
+        raise Exception("FAL API key not configured. Please set FAL_KEY or FAL_API_KEY in your .env file")
+    
+    def on_queue_update(update):
+        if isinstance(update, fal_client.InProgress):
+            for log in update.logs:
+                message = f"Video {video_id + 1} generation: {log['message']}"
+                print(message)
+                if job_id:
+                    logger.log_step(job_id, "VIDEO_PROGRESS", message)
+    
+    try:
+        if job_id:
+            logger.log_step(job_id, "VIDEO_CLIP_START", f"Starting generation of video clip {video_id + 1}", {"prompt": prompt})
+        
+        # Use FAL client with the correct v2.1/master endpoint
+        result = fal_client.subscribe(
+            "fal-ai/kling-video/v2.1/master/text-to-video",
+            arguments={
+                "prompt": prompt,
+                "duration": "5",  # 5 second videos
+                "aspect_ratio": "9:16",  # TikTok/Instagram format
+                "negative_prompt": "blur, distort, and low quality"
+            },
+            with_logs=True,
+            on_queue_update=on_queue_update,
+        )
+        
+        # Extract video URL from result
+        video_url = result.get("video", {}).get("url")
+        
+        if not video_url:
+            raise Exception("No video URL returned from FAL API")
+        
+        # Download the video to job folder
+        if job_id:
+            video_path = logger.get_job_file_path(job_id, f"video_clip_{video_id}.mp4")
+        else:
+            video_path = f"video_clip_{video_id}.mp4"
+        
+        video_response = requests.get(video_url)
+        video_response.raise_for_status()
+        
+        with open(video_path, "wb") as f:
+            f.write(video_response.content)
+        
+        success_msg = f"✅ Video {video_id + 1} saved as: {video_path}"
+        print(success_msg)
+        
+        if job_id:
+            logger.log_video_clip_generated(job_id, video_id + 1, 0, prompt, video_path)  # total_clips will be updated by caller
+        
+        return video_path
+        
+    except Exception as e:
+        error_msg = f"❌ Error generating video {video_id + 1}: {e}"
+        print(error_msg)
+        
+        if job_id:
+            logger.log_video_clip_error(job_id, video_id + 1, 0, prompt, str(e))  # total_clips will be updated by caller
+        
+        raise e
+
+
+def generate_videos_from_phrases(key_phrases: list[str], job_id: str = None) -> list[str]:
+    """Generate multiple videos from key phrases."""
+    video_paths = []
+    total_phrases = len(key_phrases)
+    
+    print(f"🎬 Starting generation of {total_phrases} videos...")
+    if job_id:
+        logger.log_step(job_id, "BATCH_VIDEO_START", f"Starting batch generation of {total_phrases} videos")
+    
+    for i, phrase in enumerate(key_phrases):
+        print(f"\n📹 Generating video {i+1}/{total_phrases}")
+        print(f"Prompt: {phrase[:100]}{'...' if len(phrase) > 100 else ''}")
+        
+        try:
+            video_path = generate_video_from_text(phrase, i, job_id)
+            video_paths.append(video_path)
+            
+            success_msg = f"✅ Video {i+1} completed!"
+            print(success_msg)
+            
+            if job_id:
+                # Update the log entry with correct total count
+                logger.log_step(job_id, "VIDEO_CLIP_SUCCESS", f"Successfully generated video {i+1}/{total_phrases}")
+                
+        except Exception as e:
+            error_msg = f"❌ Error generating video {i+1}: {e}"
+            print(error_msg)
+            # Continue with other videos even if one fails
+            continue
+    
+    completion_msg = f"🎉 Generated {len(video_paths)} out of {total_phrases} videos successfully!"
+    print(completion_msg)
+    
+    if job_id:
+        logger.log_step(job_id, "BATCH_VIDEO_COMPLETE", completion_msg, {
+            "successful_videos": len(video_paths),
+            "total_requested": total_phrases,
+            "success_rate": f"{(len(video_paths)/total_phrases)*100:.1f}%" if total_phrases > 0 else "0%"
+        })
+    
+    return video_paths
+
+
+# Keep the old function name for backwards compatibility, but mark as deprecated
 def generate_image(prompt: str) -> str:
-    """Generate an image based on the prompt and return the image path."""
-    headers = {"Authorization": f"Bearer {os.getenv('FAL_API_KEY')}"}
-    payload = {"prompt": prompt, "num_images": 1}
-    response = requests.post(
-        "https://api.fal.ai/generate", json=payload, headers=headers
-    )
-    image_url = response.json()["images"][0]
-    image_path = "output.jpg"
-    with open(image_path, "wb") as f:
-        f.write(requests.get(image_url).content)
-    return image_path
+    """Deprecated: Use generate_video_from_text instead."""
+    print("Warning: generate_image is deprecated. Use generate_video_from_text instead.")
+    return generate_video_from_text(prompt, 0)
