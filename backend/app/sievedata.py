@@ -1,30 +1,44 @@
-"""Wrapper for Sievedata API calls."""
-
-from __future__ import annotations
-
 import os
 import requests
-from google.cloud import language_v1
+
+SIEVE_API_URL = "https://mango.sievedata.com/v2/push"
+SIEVE_API_KEY = os.getenv("SIEVE_API_KEY", "demo-key-or-placeholder")
 
 
-def analyze_transcript(text: str) -> dict:
-    """Analyze transcript text and return sentiment and topics using Google Cloud Natural Language API."""
-    client = language_v1.LanguageServiceClient()
-    document = language_v1.Document(content=text, type_=language_v1.Document.Type.PLAIN_TEXT)
+def transcribe_with_sievedata(audio_url: str, api_key: str = None) -> dict:
+    """
+    Call Sievedata API to transcribe an audio file from a URL.
+    Returns the API response as a dict.
+    """
+    headers = {
+        "Content-Type": "application/json",
+        "X-API-Key": api_key or SIEVE_API_KEY,
+    }
+    payload = {
+        "function": "sieve/transcribe",
+        "inputs": {
+            "file": {"url": audio_url},
+            "backend": "stable-ts-whisper-large-v3-turbo",
+            "word_level_timestamps": True,
+            "source_language": "auto",
+            "diarization_backend": "None",
+            "min_speakers": -1,
+            "max_speakers": -1,
+            "custom_vocabulary": {},
+            "translation_backend": "None",
+            "target_language": "",
+            "segmentation_backend": "ffmpeg-silence",
+            "min_segment_length": -1,
+            "min_silence_length": 0.4,
+            "vad_threshold": 0.2,
+            "pyannote_segmentation_threshold": 0.8,
+            "chunks": [],
+            "denoise_backend": "None",
+            "initial_prompt": ""
+        }
+    }
+    response = requests.post(SIEVE_API_URL, json=payload, headers=headers)
+    response.raise_for_status()
+    return response.json()
 
-    # Sentiment analysis
-    sentiment_response = client.analyze_sentiment(request={"document": document})
-    sentiment_score = sentiment_response.document_sentiment.score
-    # Map score to a label (optional, you can adjust this mapping)
-    if sentiment_score > 0.25:
-        sentiment = "positive"
-    elif sentiment_score < -0.25:
-        sentiment = "negative"
-    else:
-        sentiment = "neutral"
-
-    # Entity analysis (topics)
-    entity_response = client.analyze_entities(request={"document": document})
-    topics = list({entity.name for entity in entity_response.entities if entity.type_ != language_v1.Entity.Type.NUMBER})
-
-    return {"sentiment": sentiment, "topics": topics}
+# This module is not currently used in the main project, but can be integrated later if needed. 

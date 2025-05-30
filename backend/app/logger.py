@@ -47,6 +47,18 @@ class JobLogger:
         """Get a file path within the job folder."""
         return os.path.join(self.get_job_folder(job_id), filename)
     
+    def _safe_data(self, data):
+        """Convert non-serializable objects in data to safe representations."""
+        def convert(obj):
+            if isinstance(obj, bytes):
+                return f"<{len(obj)} bytes>"
+            if isinstance(obj, dict):
+                return {k: convert(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [convert(i) for i in obj]
+            return obj
+        return convert(data)
+    
     def log_step(self, job_id: str, step: str, message: str, data: Dict[Any, Any] = None):
         """Log a step in the job processing pipeline."""
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -63,7 +75,7 @@ class JobLogger:
         with open(self.log_file, "a", encoding="utf-8") as f:
             f.write(f"[{timestamp}] JOB:{job_id} | {step} | {message}\n")
             if data:
-                f.write(f"  Data: {json.dumps(data, indent=2)}\n")
+                f.write(f"  Data: {json.dumps(self._safe_data(data), indent=2)}\n")
             f.write("\n")
         
         # Also print to console

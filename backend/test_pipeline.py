@@ -13,11 +13,12 @@ load_dotenv()
 
 from app.logger import logger
 from app.whisper_transcriber import transcribe_video
-from app.sievedata import analyze_transcript
 from app.utils import beautify_transcript, extract_key_phrases
 from app.elevenlabs import generate_voice
-from app.fal import generate_videos_from_phrases, generate_video_from_text
+from app.fal import generate_videos_from_phrases, generate_video_from_text, generate_video_from_image, generate_blog_avatar_video
 from app.video_assembler import create_final_video
+from app.openai_image import generate_image_with_openai
+from app.piwigo_uploader import upload_image
 
 # Sample test data
 SAMPLE_TRANSCRIPT = """
@@ -41,6 +42,10 @@ SAMPLE_KEY_PHRASES = [
     "A positive scene about art: working on a painting in a creative studio space",
     "A positive scene about friends: having dinner and laughing at an Italian restaurant"
 ]
+
+SAMPLE_GENDER = "female"
+SAMPLE_AGE_GROUP = "20-30"
+SAMPLE_VISUAL_STYLE = "Studio Ghibli"
 
 def check_environment_variables():
     """Check and display current environment variables."""
@@ -103,15 +108,18 @@ class PipelineTester:
             # Use sample transcript
             print(f"Sample transcript: {SAMPLE_TRANSCRIPT[:100]}...")
             
-            # Test analysis
-            sieve_data = analyze_transcript(SAMPLE_TRANSCRIPT)
+            # Dummy analysis (Sievedata disconnected)
+            sieve_data = SAMPLE_SIEVE_DATA
             logger.log_analysis(self.job_id, sieve_data)
             
             print(f"✅ Sentiment: {sieve_data.get('sentiment', 'unknown')}")
             print(f"✅ Topics: {sieve_data.get('topics', [])}")
             
             # Test key phrase extraction
-            key_phrases = extract_key_phrases(SAMPLE_TRANSCRIPT, sieve_data, num_phrases=4)
+            key_phrases = extract_key_phrases(
+                SAMPLE_TRANSCRIPT, sieve_data, num_phrases=4,
+                gender=SAMPLE_GENDER, age_group=SAMPLE_AGE_GROUP, visual_style=SAMPLE_VISUAL_STYLE
+            )
             logger.log_key_phrases(self.job_id, key_phrases)
             
             print(f"✅ Generated {len(key_phrases)} key phrases:")
@@ -134,7 +142,10 @@ class PipelineTester:
         
         try:
             # Create sample script
-            script = beautify_transcript(SAMPLE_TRANSCRIPT, "positive", SAMPLE_SIEVE_DATA)
+            script = beautify_transcript(
+                SAMPLE_TRANSCRIPT, "positive", SAMPLE_SIEVE_DATA,
+                gender=SAMPLE_GENDER, age_group=SAMPLE_AGE_GROUP, visual_style=SAMPLE_VISUAL_STYLE
+            )
             print(f"Sample script: {script[:100]}...")
             
             # Generate audio
@@ -164,8 +175,12 @@ class PipelineTester:
         print("=" * 50)
         
         try:
-            # Use first sample key phrase
-            test_prompt = SAMPLE_KEY_PHRASES[0]
+            # Generate tailored key phrases and use the first one
+            key_phrases = extract_key_phrases(
+                SAMPLE_TRANSCRIPT, SAMPLE_SIEVE_DATA, num_phrases=1,
+                gender=SAMPLE_GENDER, age_group=SAMPLE_AGE_GROUP, visual_style=SAMPLE_VISUAL_STYLE
+            )
+            test_prompt = key_phrases[0]
             print(f"Test prompt: {test_prompt}")
             
             # Generate single video
@@ -194,8 +209,11 @@ class PipelineTester:
         print("=" * 50)
         
         try:
-            # Use sample key phrases (limit to 2 for testing)
-            test_phrases = SAMPLE_KEY_PHRASES[:2]
+            # Generate tailored key phrases (limit to 2 for testing)
+            test_phrases = extract_key_phrases(
+                SAMPLE_TRANSCRIPT, SAMPLE_SIEVE_DATA, num_phrases=2,
+                gender=SAMPLE_GENDER, age_group=SAMPLE_AGE_GROUP, visual_style=SAMPLE_VISUAL_STYLE
+            )
             print(f"Generating {len(test_phrases)} videos...")
             
             # Generate videos
@@ -303,7 +321,12 @@ class PipelineTester:
             return False
         
         # Step 3: Generate videos (limited to 2 for testing)
-        video_paths = self.test_multiple_video_generation()
+        # Use tailored key phrases for video generation
+        key_phrases = extract_key_phrases(
+            SAMPLE_TRANSCRIPT, SAMPLE_SIEVE_DATA, num_phrases=2,
+            gender=SAMPLE_GENDER, age_group=SAMPLE_AGE_GROUP, visual_style=SAMPLE_VISUAL_STYLE
+        )
+        video_paths = generate_videos_from_phrases(key_phrases, self.job_id)
         if not video_paths:
             return False
         
@@ -313,8 +336,92 @@ class PipelineTester:
             return False
         
         print("\n🎉 Full pipeline test completed successfully!")
+        print(f"Tested with gender={SAMPLE_GENDER}, age_group={SAMPLE_AGE_GROUP}, visual_style={SAMPLE_VISUAL_STYLE}")
         logger.log_job_complete(self.job_id, final_video, len(video_paths), len(SAMPLE_KEY_PHRASES))
         return True
+    
+    def test_stylized_pipeline(self, style="Studio Ghibli"):
+        """Test the stylized pipeline: OpenAI image + FAL image-to-video, with input checks after each step."""
+        print(f"\n🖼️🎬 Testing Stylized Pipeline ({style})...")
+        print("=" * 50)
+        try:
+            key_phrases = extract_key_phrases(
+                SAMPLE_TRANSCRIPT, SAMPLE_SIEVE_DATA, num_phrases=2,
+                gender=SAMPLE_GENDER, age_group=SAMPLE_AGE_GROUP, visual_style=style
+            )
+            video_paths = []
+            for i, phrase in enumerate(key_phrases):
+                image_path = logger.get_job_file_path(self.job_id, f"openai_image_{i}.png")
+                generate_image_with_openai(phrase, image_path)
+                print(f"✅ Image {i+1} generated: {image_path}")
+                # Ask to move to uploading
+                move_to_upload = input(f"Do you want to upload image {i+1}? (y/n): ").strip().lower()
+                if move_to_upload != 'y':
+                    print(f"Skipping upload for image {i+1} and image-to-video generation.")
+                    continue
+                # Upload image
+                try:
+                    upload_url = upload_image(image_path)
+                    print(f"✅ Image {i+1} uploaded. URL: {upload_url}")
+                except Exception as e:
+                    print(f"❌ Upload failed for image {i+1}: {e}")
+                    continue
+                # Ask to generate image-to-video
+                gen_video = input(f"Generate image-to-video for image {i+1}? (y/n): ").strip().lower()
+                if gen_video != 'y':
+                    print(f"Skipping image-to-video for image {i+1}.")
+                    continue
+                video_path = generate_video_from_image(image_path, phrase, i, self.job_id)
+                video_paths.append(video_path)
+            print(f"✅ Stylized pipeline generated {len(video_paths)} videos.")
+            for path in video_paths:
+                print(f"   {path} ({os.path.exists(path)})")
+            self.test_results[f"stylized_{style}"] = all(os.path.exists(p) for p in video_paths)
+            return video_paths
+        except Exception as e:
+            print(f"❌ Stylized pipeline failed: {e}")
+            self.test_results[f"stylized_{style}"] = False
+            return []
+
+    def test_blog_avatar_pipeline(self, style="Blog (Female)"):
+        """Test the blog avatar video pipeline."""
+        print(f"\n🧑‍💼🎬 Testing Blog Avatar Pipeline ({style})...")
+        print("=" * 50)
+        try:
+            avatar_id = "any_female_primary" if style == "Blog (Female)" else "any_male_primary"
+            # Use the raw transcript as the script for a natural story narration
+            script = SAMPLE_TRANSCRIPT.strip()
+            video_path = generate_blog_avatar_video(script, avatar_id, 0, self.job_id)
+            print(f"✅ Blog avatar video generated: {video_path} ({os.path.exists(video_path)})")
+            self.test_results[f"blog_avatar_{style}"] = os.path.exists(video_path)
+            return [video_path]
+        except Exception as e:
+            print(f"❌ Blog avatar pipeline failed: {e}")
+            self.test_results[f"blog_avatar_{style}"] = False
+            return []
+    
+    def test_piwigo_upload(self, image_path=None):
+        """Test uploading an image to Piwigo and print the result."""
+        print("\n🖼️ Testing Piwigo Image Upload...")
+        print("=" * 50)
+        try:
+            # Use provided image or create a dummy one
+            if image_path is None:
+                image_path = "test_piwigo_image.png"
+                # Create a small dummy image if it doesn't exist
+                if not os.path.exists(image_path):
+                    from PIL import Image
+                    img = Image.new('RGB', (64, 64), color = 'blue')
+                    img.save(image_path)
+                    print(f"Created dummy image: {image_path}")
+            url = upload_image(image_path)
+            print(f"✅ Piwigo upload successful! Public URL: {url}")
+            self.test_results["piwigo_upload"] = True
+            return url
+        except Exception as e:
+            print(f"❌ Piwigo upload failed: {e}")
+            self.test_results["piwigo_upload"] = False
+            return None
     
     def print_results_summary(self):
         """Print a summary of all test results."""
@@ -343,11 +450,37 @@ def show_menu():
     print("5. Test Video Stitching (requires audio + videos)")
     print("6. Test Full Pipeline with Sample Data")
     print("7. Test Transcription with Video File")
-    print("8. Show Test Results Summary")
-    print("9. View Recent Logs")
-    print("10. Check Environment Variables")
+    print("8. Test Stylized Pipeline (Choose Style)")
+    print("9. Test Blog Avatar Pipeline (Choose Style)")
+    print("10. Test Piwigo Image Upload")
+    print("11. Show Test Results Summary")
+    print("12. View Recent Logs")
+    print("13. Check Environment Variables")
     print("0. Exit")
     print("=" * 50)
+
+STYLE_OPTIONS = [
+    ("ghibli", "Studio Ghibli"),
+    ("pixar", "Pixar"),
+    ("anime", "Anime"),
+    ("watercolor", "Watercolor"),
+    ("cyberpunk", "Cyberpunk"),
+    ("realistic", "Realistic")
+]
+BLOG_STYLE_OPTIONS = [
+    ("blog-female", "Blog (Female)"),
+    ("blog-male", "Blog (Male)")
+]
+
+def select_style_menu(options, prompt="Select a style:"):
+    print(f"\n{prompt}")
+    for idx, (key, label) in enumerate(options, 1):
+        print(f"{idx}. {label} ({key})")
+    while True:
+        choice = input(f"Enter your choice (1-{len(options)}): ").strip()
+        if choice.isdigit() and 1 <= int(choice) <= len(options):
+            return options[int(choice)-1][0]
+        print("❌ Invalid choice. Please try again.")
 
 def main():
     """Main interactive test loop."""
@@ -360,36 +493,31 @@ def main():
     
     while True:
         show_menu()
-        choice = input("Enter your choice (0-10): ").strip()
+        choice = input("Enter your choice (0-13): ").strip()
         
         if choice == "0":
             print("👋 Goodbye!")
             break
-        
         elif choice == "1":
             if not tester.job_id:
                 tester.create_test_job()
             tester.test_transcript_analysis()
-        
         elif choice == "2":
             if not tester.job_id:
                 tester.create_test_job()
             audio_path = tester.test_audio_generation()
-        
         elif choice == "3":
             if not tester.job_id:
                 tester.create_test_job()
             single_video = tester.test_single_video_generation()
             if single_video:
                 video_paths.extend(single_video)
-        
         elif choice == "4":
             if not tester.job_id:
                 tester.create_test_job()
             multiple_videos = tester.test_multiple_video_generation()
             if multiple_videos:
                 video_paths = multiple_videos  # Replace previous videos
-        
         elif choice == "5":
             if not tester.job_id:
                 tester.create_test_job()
@@ -399,22 +527,43 @@ def main():
                 print("❌ No audio available. Generate audio first (option 2)")
             else:
                 tester.test_video_stitching(video_paths, audio_path)
-        
         elif choice == "6":
             tester.create_test_job()  # Always create new job for full test
             tester.test_full_pipeline_with_sample_data()
-        
         elif choice == "7":
             if not tester.job_id:
                 tester.create_test_job()
             video_file = input("Enter path to video file: ").strip()
             if video_file:
                 tester.test_transcription_with_file(video_file)
-        
         elif choice == "8":
-            tester.print_results_summary()
-        
+            if not tester.job_id:
+                tester.create_test_job()
+            style_key = select_style_menu(STYLE_OPTIONS, "Select a stylized/realistic style to test:")
+            # Map to internal style string for test method
+            style_map = {
+                "ghibli": "Studio Ghibli",
+                "pixar": "Pixar",
+                "anime": "Anime",
+                "watercolor": "Watercolor",
+                "cyberpunk": "Cyberpunk",
+                "realistic": "Realistic"
+            }
+            tester.test_stylized_pipeline(style_map[style_key])
         elif choice == "9":
+            if not tester.job_id:
+                tester.create_test_job()
+            blog_style_key = select_style_menu(BLOG_STYLE_OPTIONS, "Select a blog avatar style to test:")
+            blog_style_map = {
+                "blog-female": "Blog (Female)",
+                "blog-male": "Blog (Male)"
+            }
+            tester.test_blog_avatar_pipeline(blog_style_map[blog_style_key])
+        elif choice == "10":
+            tester.test_piwigo_upload()
+        elif choice == "11":
+            tester.print_results_summary()
+        elif choice == "12":
             print("\n📜 Recent Logs:")
             print("-" * 30)
             try:
@@ -424,13 +573,10 @@ def main():
                     print("".join(recent_lines))
             except FileNotFoundError:
                 print("No log file found.")
-        
-        elif choice == "10":
+        elif choice == "13":
             check_environment_variables()
-        
         else:
             print("❌ Invalid choice. Please try again.")
-        
         input("\nPress Enter to continue...")
 
 if __name__ == "__main__":

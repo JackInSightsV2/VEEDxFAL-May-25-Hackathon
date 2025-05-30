@@ -4,4 +4,6 @@ python-dotenv
 uvicorn
 requests
 google-cloud-language
+google-cloud-speech
 fal_client
+openai
