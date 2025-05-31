@@ -18,7 +18,7 @@ from app.elevenlabs import generate_voice
 from app.fal import generate_videos_from_phrases, generate_video_from_text, generate_video_from_image, generate_blog_avatar_video, async_generate_video_from_image
 from app.video_assembler import create_final_video, add_audio_to_video
 from app.openai_image import generate_image_with_openai, async_generate_image_with_openai
-from app.piwigo_uploader import upload_image
+from app.azure_uploader import upload_image
 from app.gcp_nlp import analyze_transcript, get_sentiment_description
 
 # Import video duration utilities

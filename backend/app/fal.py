@@ -7,7 +7,7 @@ from .logger import logger
 import asyncio
 import httpx
 import base64
-from .piwigo_uploader import upload_image
+from .azure_uploader import upload_image
 
 # Ensure FAL_KEY is set for fal_client library
 def ensure_fal_key():

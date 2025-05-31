@@ -15,7 +15,7 @@ from .video_assembler import create_final_video
 from .logger import logger
 from .openai_image import generate_image_with_openai, async_generate_image_with_openai
 from .gcp_nlp import analyze_transcript
-from .piwigo_uploader import upload_image
+from .azure_uploader import upload_image
 from video_utils import get_video_duration
 from video_stitcher import stitch_videos
 

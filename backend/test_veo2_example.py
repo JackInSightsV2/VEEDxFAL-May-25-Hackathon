@@ -15,7 +15,7 @@ load_dotenv()
 sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
 
 from app.fal import generate_video_from_image
-from app.piwigo_uploader import upload_image
+from app.azure_uploader import upload_image
 
 def test_veo2_image_to_video():
     """Test the VEO2 image-to-video model with a sample image and prompt."""
