@@ -209,12 +209,20 @@ class PipelineTester:
             )
             print(f"Sample script: {script[:100]}...")
             
+            # Determine voice gender for audio generation
+            audio_gender = SAMPLE_GENDER
+            if SAMPLE_GENDER.lower() in ["non-binary", "nonbinary", "non_binary"]:
+                # For non-binary, ask for voice preference in test mode or default to female
+                print("\n🎤 Non-binary gender detected. Using female voice as default for testing.")
+                audio_gender = "female"  # Default for testing
+            
             # Generate audio
-            audio_path = generate_voice(script, self.job_id, gender=SAMPLE_GENDER)
+            audio_path = generate_voice(script, self.job_id, gender=audio_gender)
             logger.log_audio_generation(self.job_id, script, audio_path)
             
             if os.path.exists(audio_path):
                 print(f"✅ Audio generated successfully: {audio_path}")
+                print(f"   Voice used: {audio_gender}")
                 file_size = os.path.getsize(audio_path)
                 print(f"   File size: {file_size} bytes")
                 self.test_results["audio_generation"] = True
@@ -951,9 +959,37 @@ class PipelineTester:
             
             print(f"✅ Generated third-person dialog about {test_name} ({len(dialog.split())} words): {dialog[:100]}...")
             
-            # Step 2: Determine avatar ID based on gender
-            avatar_id = "any_female_primary" if gender.lower() == "female" else "any_male_primary"
-            print(f"🧑‍💼 Using avatar: {avatar_id}")
+            # Step 2: Determine avatar ID based on gender and voice preference
+            voice_style = None
+            if gender.lower() in ["non-binary", "nonbinary", "non_binary"]:
+                print(f"\n🎤 Non-binary gender selected. Please choose voice style for avatar:")
+                print("1. Female voice/avatar")
+                print("2. Male voice/avatar")
+                while True:
+                    voice_choice = input("Enter your choice (1-2): ").strip()
+                    if voice_choice == "1":
+                        voice_style = "female"
+                        break
+                    elif voice_choice == "2":
+                        voice_style = "male"
+                        break
+                    print("❌ Invalid choice. Please try again.")
+            
+            if gender.lower() == "female":
+                avatar_id = "any_female_primary"
+            elif gender.lower() == "male":
+                avatar_id = "any_male_primary"
+            elif gender.lower() in ["non-binary", "nonbinary", "non_binary"]:
+                # For non-binary users, use voice_style preference since blog avatars only support male/female
+                if voice_style and voice_style.lower() == "male":
+                    avatar_id = "any_male_primary"
+                else:
+                    # Default to female voice/avatar if no preference specified
+                    avatar_id = "any_female_primary"
+            else:
+                # Default fallback
+                avatar_id = "any_female_primary"
+            print(f"🧑‍💼 Using avatar: {avatar_id} for gender: {gender}, voice_style: {voice_style}")
             
             # Step 3: Generate talking avatar video (includes audio automatically)
             print("🎬 Generating talking avatar video with built-in audio...")
@@ -1125,13 +1161,17 @@ class PipelineTester:
         print("\nSelect gender:")
         print("1. Female")
         print("2. Male")
+        print("3. Non-binary")
         while True:
-            gender_choice = input("Enter your choice (1-2): ").strip()
+            gender_choice = input("Enter your choice (1-3): ").strip()
             if gender_choice == "1":
                 selected_gender = "female"
                 break
             elif gender_choice == "2":
                 selected_gender = "male"
+                break
+            elif gender_choice == "3":
+                selected_gender = "non-binary"
                 break
             print("❌ Invalid choice. Please try again.")
         
@@ -1388,13 +1428,17 @@ class PipelineTester:
         print("\nSelect gender:")
         print("1. Female")
         print("2. Male")
+        print("3. Non-binary")
         while True:
-            gender_choice = input("Enter your choice (1-2): ").strip()
+            gender_choice = input("Enter your choice (1-3): ").strip()
             if gender_choice == "1":
                 selected_gender = "female"
                 break
             elif gender_choice == "2":
                 selected_gender = "male"
+                break
+            elif gender_choice == "3":
+                selected_gender = "non-binary"
                 break
             print("❌ Invalid choice. Please try again.")
         
@@ -2023,13 +2067,17 @@ def main():
             print("\nSelect gender for text-to-blog avatar:")
             print("1. Female")
             print("2. Male")
+            print("3. Non-binary")
             while True:
-                gender_choice = input("Enter your choice (1-2): ").strip()
+                gender_choice = input("Enter your choice (1-3): ").strip()
                 if gender_choice == "1":
                     selected_gender = "female"
                     break
                 elif gender_choice == "2":
                     selected_gender = "male"
+                    break
+                elif gender_choice == "3":
+                    selected_gender = "non-binary"
                     break
                 print("❌ Invalid choice. Please try again.")
             tester.test_text_to_blog_pipeline(selected_gender)

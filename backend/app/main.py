@@ -42,14 +42,14 @@ async def root():
                 "path": "/generate", 
                 "method": "POST",
                 "description": "Generate video from uploaded video file using ASYNC concurrent processing",
-                "parameters": ["video (file)", "mood", "gender", "age_group", "visual_style"],
+                "parameters": ["video (file)", "mood", "gender", "age_group", "visual_style", "voice_style"],
                 "processing": "ASYNC (concurrent images & videos)"
             },
             {
                 "path": "/generate-from-text", 
                 "method": "POST", 
                 "description": "Generate video directly from text using ASYNC concurrent processing (no upload required)",
-                "parameters": ["text", "mood", "gender", "age_group", "visual_style"],
+                "parameters": ["text", "mood", "gender", "age_group", "visual_style", "voice_style"],
                 "processing": "ASYNC (concurrent images & videos)"
             },
             {
@@ -66,7 +66,7 @@ async def root():
                 "path": "/text-to-blog",
                 "method": "POST",
                 "description": "Generate a 25-second talking avatar video from text input using blog avatars.",
-                "parameters": ["text", "name", "gender", "age_group", "mood"],
+                "parameters": ["text", "name", "gender", "age_group", "mood", "voice_style"],
                 "processing": "ASYNC"
             }
         ],
@@ -74,8 +74,9 @@ async def root():
             "Studio Ghibli", "Pixar", "Anime", "Watercolor", "Cyberpunk", 
             "blog-female", "blog-male", "Realistic"
         ],
-        "supported_genders": ["female", "male"],
+        "supported_genders": ["female", "male", "non-binary"],
         "supported_age_groups": ["18-25", "26-35", "36-45", "46-55", "55+"],
+        "voice_style_note": "For non-binary users: specify 'voice_style' as 'male' or 'female' since blog avatars only support binary options",
         "performance": "All image and video generation uses concurrent processing for maximum speed"
     }
 
@@ -104,7 +105,8 @@ async def generate(
     mood: str = Form("Reflective"),
     gender: str = Form(None),
     age_group: str = Form(None),
-    visual_style: str = Form(None)
+    visual_style: str = Form(None),
+    voice_style: str = Form(None)  # For non-binary users to specify voice preference
 ):
     """Generate a quirky daily journal video from user's input video using ASYNC processing."""
     
@@ -146,7 +148,11 @@ async def generate(
         
         # Step 5: Generate audio narration
         logger.log_step(job_id, "AUDIO_START", "Generating audio narration...")
-        audio_path = generate_voice(script, job_id, gender=gender)
+        # For non-binary users, use voice_style preference for audio generation
+        audio_gender = gender
+        if gender and gender.lower() in ["non-binary", "nonbinary", "non_binary"] and voice_style:
+            audio_gender = voice_style
+        audio_path = generate_voice(script, job_id, gender=audio_gender)
         logger.log_audio_generation(job_id, script, audio_path)
 
         # Step 6: Generate videos using ASYNC processing for all styles
@@ -162,6 +168,10 @@ async def generate(
         elif visual_style == "blog-male":
             # Use blog avatar video with any_male_primary
             video_path = generate_blog_avatar_video(script, "any_male_primary", 0, job_id)
+            video_paths = [video_path]
+        elif visual_style == "blog-nonbinary" or visual_style == "blog-non-binary":
+            # Use blog avatar video with neutral avatar (fallback to any_female_primary for now)
+            video_path = generate_blog_avatar_video(script, "any_female_primary", 0, job_id)
             video_paths = [video_path]
         else:
             # Default/Realistic: always use async pipeline
@@ -213,7 +223,8 @@ async def generate_from_text(
     mood: str = Form("Reflective"),
     gender: str = Form("female"),
     age_group: str = Form("26-35"),
-    visual_style: str = Form("Studio Ghibli")
+    visual_style: str = Form("Studio Ghibli"),
+    voice_style: str = Form(None)  # For non-binary users to specify voice preference
 ):
     """Generate a video directly from text using ASYNC processing (no video upload required)."""
     
@@ -254,6 +265,11 @@ async def generate_from_text(
             script = beautify_transcript(text, mood, sentiment_data, gender=gender, age_group=age_group, visual_style=internal_style)
             video_path = generate_blog_avatar_video(script, "any_male_primary", 0, job_id)
             video_paths = [video_path]
+        elif visual_style == "blog-nonbinary" or visual_style == "blog-non-binary":
+            # Create script for blog avatar
+            script = beautify_transcript(text, mood, sentiment_data, gender=gender, age_group=age_group, visual_style=internal_style)
+            video_path = generate_blog_avatar_video(script, "any_female_primary", 0, job_id)
+            video_paths = [video_path]
         else:
             # Default/Realistic: always use async pipeline
             logger.log_video_generation_start(job_id, len(key_phrases))
@@ -288,7 +304,11 @@ async def generate_from_text(
         
         # Step 7: Generate audio narration
         logger.log_step(job_id, "AUDIO_START", "Generating audio with ElevenLabs...")
-        audio_path = generate_voice(generated_text, job_id, gender=gender)
+        # For non-binary users, use voice_style preference for audio generation
+        audio_gender = gender
+        if gender.lower() in ["non-binary", "nonbinary", "non_binary"] and voice_style:
+            audio_gender = voice_style
+        audio_path = generate_voice(generated_text, job_id, gender=audio_gender)
         logger.log_audio_generation(job_id, generated_text, audio_path)
         
         # Step 8: Create final video with audio
@@ -334,7 +354,8 @@ async def text_to_blog(
     name: str = Form(...),
     gender: str = Form("female"),
     age_group: str = Form("26-35"),
-    mood: str = Form("Reflective")
+    mood: str = Form("Reflective"),
+    voice_style: str = Form(None)  # For non-binary users to specify voice preference
 ):
     """Generate a 25-second talking avatar video from text input using blog avatars."""
     
@@ -359,8 +380,21 @@ async def text_to_blog(
         logger.log_step(job_id, "DIALOG_COMPLETE", f"Generated third-person dialog about {name}: {dialog[:100]}...")
         
         # Step 2: Determine avatar ID based on gender
-        avatar_id = "any_female_primary" if gender.lower() == "female" else "any_male_primary"
-        logger.log_step(job_id, "AVATAR_SELECTION", f"Selected avatar: {avatar_id}")
+        if gender.lower() == "female":
+            avatar_id = "any_female_primary"
+        elif gender.lower() == "male":
+            avatar_id = "any_male_primary"
+        elif gender.lower() in ["non-binary", "nonbinary", "non_binary"]:
+            # For non-binary users, use voice_style preference since blog avatars only support male/female
+            if voice_style and voice_style.lower() == "male":
+                avatar_id = "any_male_primary"
+            else:
+                # Default to female voice/avatar if no preference specified
+                avatar_id = "any_female_primary"
+        else:
+            # Default fallback
+            avatar_id = "any_female_primary"
+        logger.log_step(job_id, "AVATAR_SELECTION", f"Selected avatar: {avatar_id} for gender: {gender}, voice_style: {voice_style}")
         
         # Step 3: Generate talking avatar video (handles both video and audio automatically)
         logger.log_step(job_id, "AVATAR_VIDEO_START", "Generating talking avatar video with audio...")

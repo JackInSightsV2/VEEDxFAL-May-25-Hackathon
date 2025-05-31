@@ -32,6 +32,14 @@ def generate_voice(script: str, job_id: str = None, voice_id: str = None, gender
             "voice_id": "VR6AewLTigWG4xSOukaG",  # Josh - clear, confident male voice  
             "name": "Josh"
         },
+        "non-binary": {
+            "voice_id": "JBFqnCBsd6RMkjVDRZzb",  # George - neutral voice
+            "name": "George"
+        },
+        "nonbinary": {
+            "voice_id": "JBFqnCBsd6RMkjVDRZzb",  # George - neutral voice (alternative key)
+            "name": "George"
+        },
         "default": {
             "voice_id": "JBFqnCBsd6RMkjVDRZzb",  # George - neutral voice
             "name": "George"

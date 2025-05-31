@@ -143,6 +143,7 @@ function VideoGeneratorComponent() {
                         <option value="Realistic">Realistic</option>
                         <option value="blog-female">Blog (Female)</option>
                         <option value="blog-male">Blog (Male)</option>
+                        <option value="blog-nonbinary">Blog (Non-binary)</option>
                     </select>
                 </div>
 
@@ -154,8 +155,23 @@ function VideoGeneratorComponent() {
                     >
                         <option value="female">Female</option>
                         <option value="male">Male</option>
+                        <option value="non-binary">Non-binary</option>
                     </select>
                 </div>
+
+                {options.gender === 'non-binary' && (
+                    <div className="form-group">
+                        <label>Voice Style (for non-binary):</label>
+                        <select 
+                            value={options.voice_style || 'female'} 
+                            onChange={(e) => setOptions({...options, voice_style: e.target.value})}
+                        >
+                            <option value="female">Female Voice</option>
+                            <option value="male">Male Voice</option>
+                        </select>
+                        <small>Blog avatars only support male/female, so please choose your preferred voice style.</small>
+                    </div>
+                )}
 
                 <div className="form-group">
                     <label>Age Group:</label>
@@ -253,8 +269,9 @@ const API_PARAMETERS = {
     
     // Optional parameters for both endpoints
     mood: ['Reflective', 'Energetic', 'Peaceful', 'Adventurous'], // Default: 'Reflective'
-    gender: ['female', 'male'], // Default: varies by endpoint
+    gender: ['female', 'male', 'non-binary'], // Default: varies by endpoint
     age_group: ['18-25', '26-35', '36-45', '46-55', '55+'], // Default: varies by endpoint
+    voice_style: ['female', 'male'], // For non-binary users only - chooses voice/avatar style since blog avatars only support male/female
     visual_style: [
         'Studio Ghibli',    // Animated, magical style
         'Pixar',           // 3D animated style  
@@ -263,7 +280,8 @@ const API_PARAMETERS = {
         'Cyberpunk',       // Futuristic sci-fi style
         'Realistic',       // Photorealistic style
         'blog-female',     // Female avatar for blog content
-        'blog-male'        // Male avatar for blog content
+        'blog-male',        // Male avatar for blog content
+        'blog-nonbinary'   // Non-binary avatar for blog content
     ]
 };
 
