@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import JournalInput from '@/components/journal-input';
-import VideoUpload from '@/components/video-upload';
-import StyleSettings from '@/components/style-settings';
-import ProcessingStatus from '@/components/processing-status';
-import VideoPreview from '@/components/video-preview';
-import { JournalData } from '@/lib/types';
-import { submitJournalData, checkVideoStatus } from '@/lib/api';
-import { Card } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import JournalInput from './journal-input';
+import VideoUpload from './video-upload';
+import StyleSettings from './style-settings';
+import ProcessingStatus from './processing-status';
+import VideoPreview from './video-preview';
+import { JournalData } from '../lib/types';
+import { submitJournalData, checkVideoStatus } from '../lib/api';
+import { Card } from './ui/card';
+import { useToast } from '../hooks/use-toast';
 
 export default function JournalCreator() {
   const [activeStep, setActiveStep] = useState<'input' | 'style' | 'processing' | 'preview'>('input');

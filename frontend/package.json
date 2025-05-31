@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3031",
     "build": "next build",
+    "build:azure": "npx tsc --noEmit && next build",
     "start": "next start",
     "lint": "next lint"
   },

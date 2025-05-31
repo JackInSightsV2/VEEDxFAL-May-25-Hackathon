@@ -1,5 +1,5 @@
-import Hero from '@/components/hero';
-import JournalCreator from '@/components/journal-creator';
+import Hero from '../components/hero';
+import JournalCreator from '../components/journal-creator';
 import Image from 'next/image';
 
 export default function Home() {
