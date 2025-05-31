@@ -15,11 +15,20 @@ const nextConfig = {
       }
     }
     
-    // Add path resolution for @ alias
+    // Add path resolution for @ alias and explicit lib resolution
     config.resolve.alias = {
       ...config.resolve.alias,
       '@': path.resolve(__dirname),
+      '@/lib': path.resolve(__dirname, 'lib'),
+      '@/components': path.resolve(__dirname, 'components'),
+      '@/hooks': path.resolve(__dirname, 'hooks'),
     };
+    
+    // Ensure proper module resolution
+    config.resolve.modules = [
+      path.resolve(__dirname, 'node_modules'),
+      'node_modules'
+    ];
     
     return config
   },

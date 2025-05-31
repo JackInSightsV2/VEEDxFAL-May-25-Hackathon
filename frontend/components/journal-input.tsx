@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from 'react';
-import { Button } from './ui/button';
-import { Textarea } from './ui/textarea';
-import { Card } from './ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Card } from '@/components/ui/card';
 import { 
   Lightbulb, 
   ArrowRight, 
   RefreshCw,
   CornerDownRight
 } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn } from '@/lib/utils';
 
 interface JournalInputProps {
   onSubmit: (text: string, prompt: string) => void;
