@@ -231,7 +231,7 @@ async def async_generate_videos_from_phrases(key_phrases: list[str], job_id: str
     return video_paths
 
 def generate_video_from_image(image_path: str, prompt: str, video_id: int = 0, job_id: str = None) -> str:
-    """Generate a video from an image using FAL's image-to-video endpoint."""
+    """Generate a video from an image using FAL's veo2 image-to-video endpoint."""
     if not ensure_fal_key():
         raise Exception("FAL API key not configured. Please set FAL_KEY or FAL_API_KEY in your .env file")
 
@@ -251,13 +251,10 @@ def generate_video_from_image(image_path: str, prompt: str, video_id: int = 0, j
         image_url = upload_image(image_path)
 
         result = fal_client.subscribe(
-            "fal-ai/kling-video/v2.1/master/image-to-video",
+            "fal-ai/veo2/image-to-video",
             arguments={
-                "image_url": image_url,
                 "prompt": prompt,
-                "duration": "5",
-                "aspect_ratio": "9:16",
-                "negative_prompt": "blur, distort, and low quality"
+                "image_url": image_url
             },
             with_logs=True,
             on_queue_update=on_queue_update,
@@ -265,7 +262,7 @@ def generate_video_from_image(image_path: str, prompt: str, video_id: int = 0, j
 
         video_url = result.get("video", {}).get("url")
         if not video_url:
-            raise Exception("No video URL returned from FAL API (image-to-video)")
+            raise Exception("No video URL returned from FAL API (veo2 image-to-video)")
 
         if job_id:
             video_path = logger.get_job_file_path(job_id, f"video_clip_{video_id}.mp4")
@@ -283,6 +280,67 @@ def generate_video_from_image(image_path: str, prompt: str, video_id: int = 0, j
         return video_path
     except Exception as e:
         print(f"❌ Error generating image-to-video {video_id + 1}: {e}")
+        if job_id:
+            logger.log_video_clip_error(job_id, video_id + 1, 0, prompt, str(e))
+        raise e
+
+async def async_generate_video_from_image(image_path: str, prompt: str, video_id: int = 0, job_id: str = None) -> str:
+    """Async version: Generate a video from an image using FAL's veo2 image-to-video endpoint."""
+    import functools
+    if not ensure_fal_key():
+        raise Exception("FAL API key not configured. Please set FAL_KEY or FAL_API_KEY in your .env file")
+
+    def on_queue_update(update):
+        if isinstance(update, fal_client.InProgress):
+            for log in update.logs:
+                message = f"Image-to-Video {video_id + 1} generation: {log['message']}"
+                print(message)
+                if job_id:
+                    logger.log_step(job_id, "VIDEO_PROGRESS", message)
+
+    try:
+        if job_id:
+            logger.log_step(job_id, "VIDEO_CLIP_START", f"Starting async image-to-video clip {video_id + 1}", {"prompt": prompt, "image_path": image_path})
+
+        # Upload image to Piwigo and get the URL (run in thread since it might be blocking)
+        image_url = await asyncio.to_thread(upload_image, image_path)
+
+        # Run the FAL API call in a thread since it's blocking
+        result = await asyncio.to_thread(
+            functools.partial(
+                fal_client.subscribe,
+                "fal-ai/veo2/image-to-video",
+                arguments={
+                    "prompt": prompt,
+                    "image_url": image_url
+                },
+                with_logs=True,
+                on_queue_update=on_queue_update,
+            )
+        )
+
+        video_url = result.get("video", {}).get("url")
+        if not video_url:
+            raise Exception("No video URL returned from FAL API (veo2 image-to-video)")
+
+        if job_id:
+            video_path = logger.get_job_file_path(job_id, f"video_clip_{video_id}.mp4")
+        else:
+            video_path = f"video_clip_{video_id}.mp4"
+
+        # Download video asynchronously
+        async with httpx.AsyncClient() as client:
+            video_response = await client.get(video_url)
+            video_response.raise_for_status()
+            with open(video_path, "wb") as f:
+                f.write(video_response.content)
+
+        print(f"✅ Async Image-to-Video {video_id + 1} saved as: {video_path}")
+        if job_id:
+            logger.log_video_clip_generated(job_id, video_id + 1, 0, prompt, video_path)
+        return video_path
+    except Exception as e:
+        print(f"❌ Error generating async image-to-video {video_id + 1}: {e}")
         if job_id:
             logger.log_video_clip_error(job_id, video_id + 1, 0, prompt, str(e))
         raise e

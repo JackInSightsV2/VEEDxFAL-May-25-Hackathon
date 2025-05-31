@@ -9,10 +9,10 @@ def beautify_diary(text: str) -> str:
     return text
 
 
-def beautify_transcript(transcript: str, mood: str, sieve_data: dict, gender: str = None, age_group: str = None, visual_style: str = None) -> str:
-    """Format the transcript using simple metadata and user attributes."""
-    themes = ", ".join(sieve_data.get("topics", []))
-    sentiment = sieve_data.get("sentiment", "reflective")
+def beautify_transcript(transcript: str, mood: str, sentiment_data: dict, gender: str = None, age_group: str = None, visual_style: str = None) -> str:
+    """Format the transcript using sentiment analysis metadata and user attributes."""
+    themes = ", ".join(sentiment_data.get("topics", []))
+    sentiment = sentiment_data.get("sentiment", "reflective")
     user_desc = []
     if gender:
         user_desc.append(f"for a {gender}")
@@ -30,14 +30,14 @@ def beautify_transcript(transcript: str, mood: str, sieve_data: dict, gender: st
 
 
 def extract_key_phrases(
-    transcript: str, sieve_data: dict, num_phrases: int = 4,
+    transcript: str, sentiment_data: dict, num_phrases: int = 4,
     gender: str = None, age_group: str = None, visual_style: str = None
 ) -> list[str]:
     """Extract key phrases from transcript for video generation, tailored to user attributes. Selects the most important sentences by topic match and length."""
     sentences = re.split(r'[.!?]+', transcript)
     sentences = [s.strip() for s in sentences if s.strip()]
-    themes = sieve_data.get("topics", [])
-    sentiment = sieve_data.get("sentiment", "reflective")
+    themes = sentiment_data.get("topics", [])
+    sentiment = sentiment_data.get("sentiment", "reflective")
 
     # Score each sentence by number of topic matches, then by length
     def topic_score(sentence):

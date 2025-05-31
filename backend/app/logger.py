@@ -102,10 +102,10 @@ class JobLogger:
             {"transcript_length": len(transcript), "transcript_preview": transcript[:100] + "..." if len(transcript) > 100 else transcript}
         )
     
-    def log_analysis(self, job_id: str, sieve_data: Dict[Any, Any]):
+    def log_analysis(self, job_id: str, sentiment_data: Dict[Any, Any]):
         """Log transcript analysis."""
-        sentiment = sieve_data.get("sentiment", "unknown")
-        topics = sieve_data.get("topics", [])
+        sentiment = sentiment_data.get("sentiment", "unknown")
+        topics = sentiment_data.get("topics", [])
         self.log_step(
             job_id,
             "ANALYSIS",

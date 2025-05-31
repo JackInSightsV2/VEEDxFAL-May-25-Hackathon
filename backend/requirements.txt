@@ -7,3 +7,7 @@ google-cloud-language
 google-cloud-speech
 fal_client
 openai
+opencv-python
+moviepy
+Pillow
+elevenlabs
