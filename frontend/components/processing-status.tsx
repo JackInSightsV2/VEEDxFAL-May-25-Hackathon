@@ -72,7 +72,7 @@ export default function ProcessingStatus({
     }, 5000);
     
     return () => clearInterval(tipInterval);
-  }, []);
+  }, [tips.length]);
 
   return (
     <div className="p-6 md:p-8 text-center">

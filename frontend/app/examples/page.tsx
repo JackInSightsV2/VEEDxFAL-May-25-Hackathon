@@ -135,7 +135,7 @@ export default function ExamplesPage() {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}/examples`);
+      const response = await fetch(`https://veedxfal-backend.gentlefield-cad6f183.uksouth.azurecontainerapps.io/examples`);
       const data = await response.json();
       
       if (data.success) {

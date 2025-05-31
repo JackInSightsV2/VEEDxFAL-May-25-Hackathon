@@ -77,7 +77,7 @@ export default function JournalInput({ onSubmit }: JournalInputProps) {
             </div>
             {activePrompt && (
               <div className="text-sm text-muted-foreground flex items-center">
-                <span className="italic mr-2">"{activePrompt}"</span>
+                <span className="italic mr-2">&ldquo;{activePrompt}&rdquo;</span>
                 <CornerDownRight size={14} />
               </div>
             )}
