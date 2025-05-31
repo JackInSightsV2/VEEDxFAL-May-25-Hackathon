@@ -13,13 +13,14 @@ import { Input } from '@/components/ui/input';
 import { ArrowLeft, ArrowRight, PaintBucket } from 'lucide-react';
 
 interface StyleSettingsProps {
-  onSubmit: (data: { gender: string; age: string; style: string; name?: string }) => void;
+  onSubmit: (data: { gender: string; age: string; style: string; name?: string; voicePreference?: string }) => void;
   onBack: () => void;
   initialValues: {
     gender: string;
     age: string;
     style: string;
     name?: string;
+    voicePreference?: string;
   };
 }
 
@@ -40,7 +41,7 @@ export default function StyleSettings({ onSubmit, onBack, initialValues }: Style
     age: initialValues.age || '',
     style: initialValues.style || 'ghibli',
     name: initialValues.name || '',
-    voicePreference: initialValues.gender === 'non-binary' ? 'feminine' : '',
+    voicePreference: initialValues.voicePreference || (initialValues.gender === 'non-binary' ? 'feminine' : ''),
   });
 
   const isBlogStyle = formData.style.startsWith('blog-');
@@ -48,7 +49,13 @@ export default function StyleSettings({ onSubmit, onBack, initialValues }: Style
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.gender && formData.age && (!isBlogStyle || formData.name)) {
-      onSubmit(formData);
+      onSubmit({
+        gender: formData.gender,
+        age: formData.age,
+        style: formData.style,
+        name: formData.name,
+        voicePreference: formData.voicePreference
+      });
     }
   };
 

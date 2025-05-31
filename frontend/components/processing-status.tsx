@@ -9,11 +9,17 @@ import { cn } from '@/lib/utils';
 interface ProcessingStatusProps {
   videoId: string | null;
   onCancel: () => void;
+  progress?: number;
+  estimatedTimeRemaining?: string;
 }
 
-export default function ProcessingStatus({ videoId, onCancel }: ProcessingStatusProps) {
-  const [progress, setProgress] = useState(0);
-  const [timeRemaining, setTimeRemaining] = useState(480); // 8 minutes in seconds
+export default function ProcessingStatus({ 
+  videoId, 
+  onCancel, 
+  progress = 0, 
+  estimatedTimeRemaining = '1-3 minutes'
+}: ProcessingStatusProps) {
+  const [displayedProgress, setDisplayedProgress] = useState(0);
   const [showTips, setShowTips] = useState(true);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
 
@@ -25,23 +31,39 @@ export default function ProcessingStatus({ videoId, onCancel }: ProcessingStatus
     "Optimizing your video for social media sharing...",
   ];
 
+  // Smooth progress animation effect
   useEffect(() => {
-    // Simulate progress
-    const totalTime = 480; // 8 minutes in seconds
     const interval = setInterval(() => {
-      setProgress((prev) => {
-        const newProgress = prev + (100 / totalTime / 10);
-        return newProgress > 100 ? 100 : newProgress;
+      setDisplayedProgress((prevDisplayed) => {
+        // If we have real backend progress, smoothly move towards it
+        if (progress > 0) {
+          const diff = progress - prevDisplayed;
+          if (Math.abs(diff) > 0.5) {
+            // If there's a significant difference, move towards backend progress
+            return prevDisplayed + (diff * 0.1); // Move 10% of the way towards target
+          } else {
+            // If we're close to backend progress, use it directly
+            return progress;
+          }
+        } else {
+          // Fallback: reach 100% in 3 minutes (180 seconds) if no backend updates
+          // This means increment by ~0.056% every 100ms (100/180/10 ≈ 0.056)
+          const incrementPerTick = 100 / (180 * 10); // 3 minutes = 180 seconds, 10 ticks per second
+          return Math.min(prevDisplayed + incrementPerTick, 100);
+        }
       });
-      
-      setTimeRemaining((prev) => {
-        const newTime = prev - 0.1;
-        return newTime < 0 ? 0 : newTime;
-      });
-    }, 100); // Update every 0.1 seconds
-    
+    }, 100); // Update every 100ms for smooth animation
+
     return () => clearInterval(interval);
-  }, []);
+  }, [progress]);
+
+  // When backend progress changes significantly, adjust displayed progress
+  useEffect(() => {
+    if (progress > displayedProgress + 5) {
+      // If backend jumped ahead significantly, quickly catch up
+      setDisplayedProgress(progress - 2); // Slightly behind so animation can catch up smoothly
+    }
+  }, [progress, displayedProgress]);
 
   useEffect(() => {
     // Rotate tips
@@ -51,12 +73,6 @@ export default function ProcessingStatus({ videoId, onCancel }: ProcessingStatus
     
     return () => clearInterval(tipInterval);
   }, []);
-
-  const formatTimeRemaining = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   return (
     <div className="p-6 md:p-8 text-center">
@@ -81,18 +97,18 @@ export default function ProcessingStatus({ videoId, onCancel }: ProcessingStatus
             strokeWidth="8"
             strokeLinecap="round"
             strokeDasharray="283"
-            strokeDashoffset={283 - (283 * progress) / 100}
+            strokeDashoffset={283 - (283 * displayedProgress) / 100}
             className="text-primary transition-all duration-300 ease-in-out"
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center text-2xl font-semibold">
-          {Math.round(progress)}%
+          {Math.round(displayedProgress)}%
         </div>
       </div>
       
       <h2 className="text-2xl font-bold mb-2">Creating Your Video</h2>
       <p className="text-muted-foreground mb-6">
-        This process takes approximately 8 minutes. Estimated time remaining: {formatTimeRemaining(timeRemaining)}
+        This process typically takes a few minutes. Estimated time remaining: {estimatedTimeRemaining}
       </p>
       
       <div className="relative h-20 mb-8 overflow-hidden">

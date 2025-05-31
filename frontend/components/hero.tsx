@@ -2,8 +2,15 @@
 
 import { Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 export default function Hero() {
+  const router = useRouter();
+
+  const handleSeeExamples = () => {
+    router.push('/examples');
+  };
+
   return (
     <div className="relative overflow-hidden py-24 px-6 sm:px-10 md:px-12 lg:px-24">      
       <div className="max-w-4xl mx-auto text-center relative z-10">
@@ -25,6 +32,7 @@ export default function Hero() {
         
         <div className="mt-12 flex justify-center">
           <Button 
+            onClick={handleSeeExamples}
             size="lg" 
             variant="outline" 
             className="text-base border-2 backdrop-blur-sm bg-white/5 hover:bg-secondary/5 transition-colors duration-300"

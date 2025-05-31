@@ -12,3 +12,4 @@ moviepy
 Pillow
 elevenlabs
 azure-storage-blob
+python-multipart

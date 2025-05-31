@@ -247,8 +247,8 @@ def generate_video_from_image(image_path: str, prompt: str, video_id: int = 0, j
         if job_id:
             logger.log_step(job_id, "VIDEO_CLIP_START", f"Starting image-to-video clip {video_id + 1}", {"prompt": prompt, "image_path": image_path})
 
-        # Upload image to Piwigo and get the URL
-        image_url = upload_image(image_path)
+        # Upload image to Azure and get the URL
+        image_url = upload_image(image_path, job_id=job_id)
 
         result = fal_client.subscribe(
             "fal-ai/veo2/image-to-video",
@@ -302,8 +302,8 @@ async def async_generate_video_from_image(image_path: str, prompt: str, video_id
         if job_id:
             logger.log_step(job_id, "VIDEO_CLIP_START", f"Starting async image-to-video clip {video_id + 1}", {"prompt": prompt, "image_path": image_path})
 
-        # Upload image to Piwigo and get the URL (run in thread since it might be blocking)
-        image_url = await asyncio.to_thread(upload_image, image_path)
+        # Upload image to Azure and get the URL (run in thread since it might be blocking)
+        image_url = await asyncio.to_thread(upload_image, image_path, 1, job_id)
 
         # Run the FAL API call in a thread since it's blocking
         result = await asyncio.to_thread(

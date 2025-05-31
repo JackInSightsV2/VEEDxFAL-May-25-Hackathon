@@ -740,7 +740,7 @@ class PipelineTester:
                     continue
                 # Upload image
                 try:
-                    upload_url = upload_image(image_path)
+                    upload_url = upload_image(image_path, job_id=self.job_id)
                     print(f"✅ Image {i+1} uploaded. URL: {upload_url}")
                 except Exception as e:
                     print(f"❌ Upload failed for image {i+1}: {e}")
@@ -1075,7 +1075,7 @@ class PipelineTester:
                     img = Image.new('RGB', (64, 64), color = 'blue')
                     img.save(image_path)
                     print(f"Created dummy image: {image_path}")
-            url = upload_image(image_path)
+            url = upload_image(image_path, job_id=self.job_id)
             print(f"✅ Piwigo upload successful! Public URL: {url}")
             self.test_results["piwigo_upload"] = True
             return url
@@ -1238,7 +1238,7 @@ class PipelineTester:
                 
                 print(f"📤 Uploading image {i+1}...")
                 try:
-                    upload_url = upload_image(image_path)
+                    upload_url = upload_image(image_path, job_id=self.job_id)
                     print(f"✅ Image {i+1} uploaded: {upload_url}")
                 except Exception as e:
                     print(f"❌ Upload failed for image {i+1}: {e}")
@@ -1554,7 +1554,7 @@ class PipelineTester:
             for i, image_path, phrase in successful_images:
                 # Note: upload_image might need to be made async for true concurrency
                 try:
-                    upload_url = upload_image(image_path)
+                    upload_url = upload_image(image_path, job_id=self.job_id)
                     print(f"✅ Image {i+1} uploaded: {upload_url}")
                 except Exception as e:
                     print(f"❌ Upload failed for image {i+1}: {e}")
@@ -1845,7 +1845,7 @@ Requirements:
 
 Create a flowing third-person narration that connects these scenes about {person_name}:"""
             else:
-                prompt = f"""Based on the following original story and visual scenes, create a narration that flows naturally through each scene in order. The narration should take approximately {video_duration:.1f} seconds to speak (around {target_words} words).
+                prompt = f"""Based on the following original story and visual scenes, create a FIRST-PERSON narration that flows naturally through each scene in order. The narration should take approximately {video_duration:.1f} seconds to speak (around {target_words} words).
 
 Original story: "{input_text}"
 
@@ -1853,15 +1853,18 @@ Visual scenes in order:
 {scenes_text}
 
 Requirements:
+- MAINTAIN FIRST-PERSON PERSPECTIVE throughout (use "I", "me", "my")
+- DO NOT change to third-person - keep it as if the person is telling their own story
 - The narration should flow smoothly from scene to scene in the exact order listed above
 - Should be approximately {target_words} words
-- Should be engaging and narrative-style
+- Should be engaging and personal, as if the person is sharing their own experience
 - Should capture the essence and mood of the original story
 - Should match the visual progression shown in the scenes
 - Should flow naturally when spoken aloud
 - Should be suitable for a video narration that follows the visual sequence
+- Keep the personal, first-person tone throughout
 
-Create a flowing narration that connects these scenes:"""
+Create a flowing FIRST-PERSON narration that connects these scenes:"""
 
         else:
             # Fallback to original approach if no key phrases provided
@@ -1882,24 +1885,27 @@ Requirements:
 
 Generated third-person text about {person_name}:"""
             else:
-                prompt = f"""Based on the following input text, create a short narrative that would take approximately {video_duration:.1f} seconds to speak (around {target_words} words).
+                prompt = f"""Based on the following input text, create a FIRST-PERSON narrative that would take approximately {video_duration:.1f} seconds to speak (around {target_words} words).
 
 Input text: "{input_text}"
 
 Requirements:
+- MAINTAIN FIRST-PERSON PERSPECTIVE throughout (use "I", "me", "my")
+- DO NOT convert to third-person - keep it as the person telling their own story
 - The output should be approximately {target_words} words
-- Should be engaging and narrative-style
+- Should be engaging and personal, as if the person is sharing their own experience
 - Should capture the essence and mood of the input text
 - Should flow naturally when spoken aloud
 - Should be suitable for a video narration
+- Keep the personal, first-person tone throughout
 
-Generated text:"""
+Generated FIRST-PERSON text:"""
 
         # Call OpenAI GPT-4o
         response = openai.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "You are a skilled storyteller who creates engaging narrations that match specific timing requirements and visual sequences. You excel at converting first-person stories to natural third-person narratives when requested."},
+                {"role": "system", "content": "You are a skilled storyteller who creates engaging narrations that match specific timing requirements and visual sequences. You excel at maintaining the exact narrative perspective requested - when asked for first-person narration, you ALWAYS use 'I', 'me', 'my' throughout. When asked for third-person, you convert to third-person about a specific person. Pay careful attention to the perspective requirements in each request."},
                 {"role": "user", "content": prompt}
             ],
             max_tokens=target_words + 50,  # Allow some buffer

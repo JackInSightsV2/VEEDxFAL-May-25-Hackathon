@@ -25,6 +25,8 @@ export default function JournalCreator() {
   });
   const [videoId, setVideoId] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState('1-3 minutes');
   const { toast } = useToast();
 
   const handleTextSubmit = (text: string, prompt: string) => {
@@ -37,22 +39,43 @@ export default function JournalCreator() {
     setActiveStep('style');
   };
 
-  const handleStyleSubmit = async (styleData: { gender: string; age: string; style: string }) => {
+  const handleStyleSubmit = async (styleData: { gender: string; age: string; style: string; name?: string; voicePreference?: string }) => {
     try {
-      setJournalData(prev => ({ ...prev, ...styleData }));
+      const updatedJournalData = { ...journalData, ...styleData };
+      setJournalData(updatedJournalData);
       setActiveStep('processing');
       
-      const response = await submitJournalData({
-        ...journalData,
-        ...styleData
-      });
+      // Reset progress state
+      setProgress(0);
+      setEstimatedTimeRemaining('1-3 minutes');
+      
+      const response = await submitJournalData(updatedJournalData);
       
       setVideoId(response.videoId);
       
+      // Set a 4-minute timeout to prevent infinite waiting
+      const timeoutId = setTimeout(() => {
+        clearInterval(pollingInterval);
+        toast({
+          variant: "destructive",
+          title: "Generation Timeout",
+          description: "Video generation is taking longer than expected. Please try again.",
+        });
+        setActiveStep('input');
+      }, 240000); // 4 minutes timeout
+      
       const pollingInterval = setInterval(async () => {
         const status = await checkVideoStatus(response.videoId);
+        
+        // Update progress and time remaining from backend
+        setProgress(status.progress);
+        if (status.estimatedTimeRemaining) {
+          setEstimatedTimeRemaining(status.estimatedTimeRemaining);
+        }
+        
         if (status.status === 'completed') {
           clearInterval(pollingInterval);
+          clearTimeout(timeoutId);
           setVideoUrl(status.videoUrl);
           setActiveStep('preview');
           toast({
@@ -61,14 +84,15 @@ export default function JournalCreator() {
           });
         } else if (status.status === 'failed') {
           clearInterval(pollingInterval);
+          clearTimeout(timeoutId);
           toast({
             variant: "destructive",
             title: "Generation Failed",
-            description: "There was an error creating your video. Please try again.",
+            description: status.error || "There was an error creating your video. Please try again.",
           });
           setActiveStep('input');
         }
-      }, 30000);
+      }, 15000); // Check every 15 seconds instead of 30
       
     } catch (error) {
       toast({
@@ -91,6 +115,8 @@ export default function JournalCreator() {
     });
     setVideoId(null);
     setVideoUrl(null);
+    setProgress(0);
+    setEstimatedTimeRemaining('1-3 minutes');
     setActiveStep('input');
     setInputMethod('text');
   };
@@ -125,7 +151,9 @@ export default function JournalCreator() {
               initialValues={{
                 gender: journalData.gender,
                 age: journalData.age,
-                style: journalData.style
+                style: journalData.style,
+                name: journalData.name,
+                voicePreference: journalData.voicePreference
               }}
             />
           )}
@@ -134,6 +162,8 @@ export default function JournalCreator() {
             <ProcessingStatus 
               videoId={videoId}
               onCancel={handleReset}
+              progress={progress}
+              estimatedTimeRemaining={estimatedTimeRemaining}
             />
           )}
 
