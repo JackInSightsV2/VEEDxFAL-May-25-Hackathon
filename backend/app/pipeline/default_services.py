@@ -30,22 +30,29 @@ from ..fal import (
     async_generate_videos_from_phrases,
     generate_blog_avatar_video,
 )
-from ..gcp_nlp import analyze_transcript
 from ..logger import logger
 from ..openai_image import async_generate_image_with_openai
-from ..utils import beautify_transcript, extract_key_phrases
+from ..utils import beautify_transcript
 from ..video_assembler import add_audio_to_video, create_final_video
 from ..video_stitcher import stitch_videos
 from ..video_utils import get_video_duration
 from ..transcription.google_cloud_stt import GoogleCloudSpeechTranscriptionService
+from ..analysis.google_nlp import GoogleNLPAnalysisService
+from ..analysis.keyphrase_torch import TorchKeyPhraseService
 
 
 class GCPAnalysisService(AnalysisService):
+    def __init__(self) -> None:
+        self._impl = GoogleNLPAnalysisService()
+
     def analyze(self, text: str) -> Dict[str, Any]:
-        return analyze_transcript(text)
+        return self._impl.analyze(text)
 
 
 class DefaultKeyPhraseService(KeyPhraseService):
+    def __init__(self) -> None:
+        self._impl = TorchKeyPhraseService()
+
     def extract(
         self,
         text: str,
@@ -56,7 +63,7 @@ class DefaultKeyPhraseService(KeyPhraseService):
         age_group: Optional[str],
         visual_style: Optional[str],
     ) -> List[str]:
-        return extract_key_phrases(
+        return self._impl.extract(
             text,
             sentiment_data,
             num_phrases=num_phrases,
@@ -273,6 +280,7 @@ class DefaultPipelineServices(PipelineServices):
 def build_default_services(
     audio_service: Optional[AudioService] = None,
     analysis_service: Optional[AnalysisService] = None,
+    key_phrase_service: Optional[KeyPhraseService] = None,
 ) -> DefaultPipelineServices:
     """Factory to build the default service container."""
     services = DefaultPipelineServices()
@@ -282,4 +290,6 @@ def build_default_services(
         services.audio = audio_service
     if analysis_service is not None:
         services.analysis = analysis_service
+    if key_phrase_service is not None:
+        services.key_phrases = key_phrase_service
     return services
