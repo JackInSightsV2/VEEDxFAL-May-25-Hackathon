@@ -275,9 +275,11 @@ class DefaultPipelineServices(PipelineServices):
     transcription: Optional[TranscriptionService] = WhisperTranscriptionService()
 
 
-def build_default_services() -> DefaultPipelineServices:
+def build_default_services(audio_service: Optional[AudioService] = None) -> DefaultPipelineServices:
     """Factory to build the default service container."""
     services = DefaultPipelineServices()
     # Ensure stylized visuals service references the same uploader instance
     services.stylized_visuals = AsyncStylizedVisualService(services.image_uploader)
+    if audio_service is not None:
+        services.audio = audio_service
     return services
