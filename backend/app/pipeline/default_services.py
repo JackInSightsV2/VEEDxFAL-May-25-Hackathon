@@ -281,6 +281,11 @@ def build_default_services(
     audio_service: Optional[AudioService] = None,
     analysis_service: Optional[AnalysisService] = None,
     key_phrase_service: Optional[KeyPhraseService] = None,
+    script_service: Optional[ScriptService] = None,
+    timed_text_service: Optional[TimedTextService] = None,
+    stylized_visuals: Optional[StylizedVisualService] = None,
+    realistic_visuals: Optional[VideoGenerationService] = None,
+    transcription_service: Optional[TranscriptionService] = None,
 ) -> DefaultPipelineServices:
     """Factory to build the default service container."""
     services = DefaultPipelineServices()
@@ -292,4 +297,14 @@ def build_default_services(
         services.analysis = analysis_service
     if key_phrase_service is not None:
         services.key_phrases = key_phrase_service
+    if script_service is not None:
+        services.script = script_service
+    if timed_text_service is not None:
+        services.timed_text = timed_text_service
+    if stylized_visuals is not None:
+        services.stylized_visuals = stylized_visuals
+    if realistic_visuals is not None:
+        services.realistic_visuals = realistic_visuals
+    if transcription_service is not None:
+        services.transcription = transcription_service
     return services

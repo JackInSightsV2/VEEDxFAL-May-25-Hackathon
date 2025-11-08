@@ -5,7 +5,10 @@ import re
 from dataclasses import dataclass
 from typing import List, Optional
 
-import torch
+try:
+    import torch  # type: ignore
+except ImportError:  # pragma: no cover
+    torch = None
 
 from ..pipeline.interfaces import KeyPhraseService
 
@@ -22,6 +25,8 @@ class TorchKeyPhraseService(KeyPhraseService):
     min_tokens: int = 3
 
     def __post_init__(self) -> None:
+        if torch is None:
+            raise ImportError("torch is required for TorchKeyPhraseService. Install with `pip install torch`.")
         self._weights = torch.tensor([[0.4, 0.3, 0.2, 0.1]], dtype=torch.float32)
         self._bias = torch.tensor([0.05], dtype=torch.float32)
 
