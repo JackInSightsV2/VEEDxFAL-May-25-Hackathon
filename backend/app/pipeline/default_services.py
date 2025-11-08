@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 from .interfaces import (
     AnalysisService,
     AudioService,
@@ -37,12 +37,7 @@ from ..utils import beautify_transcript, extract_key_phrases
 from ..video_assembler import add_audio_to_video, create_final_video
 from ..video_stitcher import stitch_videos
 from ..video_utils import get_video_duration
-from ..whisper_transcriber import transcribe_video
-
-
-class WhisperTranscriptionService(TranscriptionService):
-    def transcribe(self, video_path: str, job_id: str) -> str:
-        return transcribe_video(video_path, job_id)
+from ..transcription.google_cloud_stt import GoogleCloudSpeechTranscriptionService
 
 
 class GCPAnalysisService(AnalysisService):
@@ -272,7 +267,7 @@ class DefaultPipelineServices(PipelineServices):
     video_duration: VideoDurationService = VideoDuration()
     final_uploader: FinalAssetUploadService = AzureFinalAssetUploadService()
     video_uploader: VideoUploadService = AzureVideoUploadService()
-    transcription: Optional[TranscriptionService] = WhisperTranscriptionService()
+    transcription: Optional[TranscriptionService] = GoogleCloudSpeechTranscriptionService()
 
 
 def build_default_services(
