@@ -34,8 +34,11 @@ from ..logger import logger
 from ..openai_image import async_generate_image_with_openai
 from ..utils import beautify_transcript
 from ..video_assembler import add_audio_to_video, create_final_video
-from ..video_stitcher import stitch_videos
-from ..video_utils import get_video_duration
+# video_stitcher / video_utils / test_pipeline live at the backend project root
+# (alongside the `app` package), not inside `app`, so they are imported as
+# top-level modules — `uvicorn app.main:app` runs with that root on sys.path.
+from video_stitcher import stitch_videos
+from video_utils import get_video_duration
 from ..transcription.google_cloud_stt import GoogleCloudSpeechTranscriptionService
 from ..analysis.google_nlp import GoogleNLPAnalysisService
 from ..analysis.keyphrase_torch import TorchKeyPhraseService
@@ -105,7 +108,7 @@ class TimedTextForVideoService(TimedTextService):
         third_person: bool = False,
         person_name: Optional[str] = None,
     ) -> str:
-        from ..test_pipeline import generate_text_for_video_length
+        from test_pipeline import generate_text_for_video_length
 
         return generate_text_for_video_length(
             duration_seconds,

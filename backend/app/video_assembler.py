@@ -1,12 +1,13 @@
 """Combine multiple video clips and add audio narration using ffmpeg."""
 
+import shutil
 import subprocess
 import os
 from .logger import logger
 
 
 def get_video_duration(video_path: str) -> float:
-    """Get the duration of a video file in seconds."""
+    """Get the duration of a video file in seconds (0.0 if it can't be determined)."""
     result = subprocess.run(
         [
             "ffprobe",
@@ -18,7 +19,12 @@ def get_video_duration(video_path: str) -> float:
         capture_output=True,
         text=True
     )
-    return float(result.stdout.strip())
+    try:
+        return float(result.stdout.strip())
+    except (ValueError, AttributeError):
+        # ffprobe failed / returned empty (bad codec, missing file) — don't crash
+        # the caller (add_audio_to_video); fall back to an unknown duration.
+        return 0.0
 
 
 def stitch_videos(video_paths: list[str], output_path: str = "stitched_video.mp4") -> str:
@@ -27,8 +33,8 @@ def stitch_videos(video_paths: list[str], output_path: str = "stitched_video.mp4
         raise ValueError("No video paths provided")
     
     if len(video_paths) == 1:
-        # If only one video, just copy it
-        subprocess.run(["cp" if os.name != "nt" else "copy", video_paths[0], output_path])
+        # If only one video, just copy it (cross-platform; raises on failure)
+        shutil.copy2(video_paths[0], output_path)
         return output_path
     
     # Create a temporary file list for ffmpeg in the same directory as output

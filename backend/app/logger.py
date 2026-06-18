@@ -75,7 +75,9 @@ class JobLogger:
         with open(self.log_file, "a", encoding="utf-8") as f:
             f.write(f"[{timestamp}] JOB:{job_id} | {step} | {message}\n")
             if data:
-                f.write(f"  Data: {json.dumps(self._safe_data(data), indent=2)}\n")
+                # default=str guards against any value _safe_data didn't normalise
+                # (sets, Paths, etc.) so logging can never crash the pipeline step.
+                f.write(f"  Data: {json.dumps(self._safe_data(data), indent=2, default=str)}\n")
             f.write("\n")
         
         # Also print to console

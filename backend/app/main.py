@@ -1,10 +1,6 @@
 from dotenv import load_dotenv
 load_dotenv()  # Load environment variables from .env file
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 from fastapi import FastAPI, UploadFile, Form
 from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
